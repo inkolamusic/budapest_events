@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budapest Events Database</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 10px; background: #f7f7f7; }
+  h1 { text-align: center; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  th { background-color: #4CAF50; color: white; }
+  tr:nth-child(even) { background-color: #f2f2f2; }
+  tr:hover { background-color: #ddd; cursor: pointer; }
+  .filter-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 10px 0; }
+  select { padding: 5px; }
+  /* Модальное окно */
+  .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto;
+           background-color: rgba(0,0,0,0.5); }
+  .modal-content { background-color: #fff; margin: 5% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 600px; }
+  .close { float: right; font-size: 24px; font-weight: bold; cursor: pointer; }
+  @media (max-width: 600px) {
+    th, td { font-size: 12px; padding: 6px; }
+    .modal-content { width: 95%; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Budapest & Szentendre Events 2026</h1>
+
+<div class="filter-container">
+  <select id="filterCity">
+    <option value="">All Cities</option>
+  </select>
+  <select id="filterSeason">
+    <option value="">All Seasons</option>
+  </select>
+  <select id="filterMonth">
+    <option value="">All Months</option>
+  </select>
+  <select id="filterCategory">
+    <option value="">All Categories</option>
+  </select>
+</div>
+
+<table id="eventsTable">
+  <thead>
+    <tr>
+      <th>Event name</th>
+      <th>City</th>
+      <th>Season</th>
+      <th>Month</th>
+      <th>Category</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<!-- Модальное окно -->
+<div id="eventModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRT2Ir3fvsGHchJyk04LpS7qBTPuGoiytSy37BFK-RVoo8WNCPIyPMYTH_OLnkRZH6LegqjWF-MFm4I/pub?gid=0&single=true&output=csv";
+
+async function loadData() {
+  const res = await fetch(sheetURL);
+  const text = await res.text();
+  const data = Papa.parse(text, { header: true }).data;
+  populateFilters(data);
+  displayTable(data);
+  setupFiltering(data);
+}
+
+function populateFilters(data) {
+  const cities = [...new Set(data.map(d => d.City).filter(Boolean))];
+  const seasons = [...new Set(data.map(d => d.Season).filter(Boolean))];
+  const months = [...new Set(data.map(d => d.Month).filter(Boolean))];
+  const categories = [...new Set(data.map(d => d.Category).filter(Boolean))];
+  fillSelect("filterCity", cities);
+  fillSelect("filterSeason", seasons);
+  fillSelect("filterMonth", months);
+  fillSelect("filterCategory", categories);
+}
+
+function fillSelect(id, values) {
+  const select = document.getElementById(id);
+  values.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    select.appendChild(opt);
+  });
+}
+
+function setupFiltering(data) {
+  const selects = document.querySelectorAll("select");
+  selects.forEach(s => s.addEventListener("change", () => {
+    const filters = {
+      City: document.getElementById("filterCity").value,
+      Season: document.getElementById("filterSeason").value,
+      Month: document.getElementById("filterMonth").value,
+      Category: document.getElementById("filterCategory").value
+    };
+    const filtered = data.filter(d =>
+      (!filters.City || d.City === filters.City) &&
+      (!filters.Season || d.Season === filters.Season) &&
+      (!filters.Month || d.Month === filters.Month) &&
+      (!filters.Category || d.Category === filters.Category)
+    );
+    displayTable(filtered);
+  }));
+}
+
+function displayTable(data) {
+  const tbody = document.querySelector("#eventsTable tbody");
+  tbody.innerHTML = "";
+  data.forEach(row => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="event-link" style="color:#0073e6;text-decoration:underline;">${row["Event name"]}</td>
+      <td>${row.City}</td>
+      <td>${row.Season}</td>
+      <td>${row.Month}</td>
+      <td>${row.Category}</td>
+    `;
+    tr.addEventListener("click", () => showModal(row));
+    tbody.appendChild(tr);
+  });
+}
+
+function showModal(row) {
+  const modal = document.getElementById("eventModal");
+  const body = document.getElementById("modalBody");
+  body.innerHTML = `
+    <h2>${row["Event name"]}</h2>
+    <p><b>City:</b> ${row.City}</p>
+    <p><b>Location:</b> ${row.Location}</p>
+    <p><b>Season:</b> ${row.Season}</p>
+    <p><b>Month:</b> ${row.Month}</p>
+    <p><b>Start Date:</b> ${row["Start Date"]}</p>
+    <p><b>End Date:</b> ${row["End Date"]}</p>
+    <p><b>Annual:</b> ${row.Annual}</p>
+    <p><b>Category:</b> ${row.Category}</p>
+    <p><b>Description:</b> ${row.Description}</p>
+    <p><b>Food and Drink:</b><br>${row["Food and Drink"]}</p>
+    <p><b>Information:</b> <a href="${row.Information}" target="_blank">${row.Information}</a></p>
+    <p><b>Link:</b> <a href="${row.Link}" target="_blank">${row.Link}</a></p>
+  `;
+  modal.style.display = "block";
+}
+
+const closeBtn = document.querySelector(".close");
+closeBtn.onclick = () => document.getElementById("eventModal").style.display = "none";
+window.onclick = (e) => {
+  const modal = document.getElementById("eventModal");
+  if (e.target === modal) modal.style.display = "none";
+};
+
+// Подключаем PapaParse
+const papaScript = document.createElement("script");
+papaScript.src = "https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js";
+papaScript.onload = loadData;
+document.head.appendChild(papaScript);
+</script>
+
+</body>
+</html>
