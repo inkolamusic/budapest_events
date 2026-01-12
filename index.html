@@ -65,22 +65,30 @@
   </div>
 </div>
 
+<!-- ✅ Подключаем PapaParse до основного кода -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
 <script>
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRT2Ir3fvsGHchJyk04LpS7qBTPuGoiytSy37BFK-RVoo8WNCPIyPMYTH_OLnkRZH6LegqjWF-MFm4I/pub?gid=0&single=true&output=csv";
 
 async function loadData() {
-  const res = await fetch(sheetURL);
-  const text = await res.text();
-  const data = Papa.parse(text, { header: true }).data;
-  populateFilters(data);
-  displayTable(data);
-  setupFiltering(data);
+  try {
+    const res = await fetch(sheetURL);
+    const text = await res.text();
+    const data = Papa.parse(text, { header: true }).data.filter(row => row["Event name"]); // убираем пустые строки
+    populateFilters(data);
+    displayTable(data);
+    setupFiltering(data);
+  } catch (e) {
+    console.error("Ошибка загрузки данных:", e);
+  }
 }
 
 function populateFilters(data) {
   const cities = [...new Set(data.map(d => d.City?.trim()).filter(Boolean))];
   const seasons = [...new Set(data.map(d => d.Season?.trim()).filter(Boolean))];
   const months = [...new Set(data.map(d => d.Month?.trim()).filter(Boolean))];
+
   const categorySet = new Set();
   data.forEach(d => {
     if (d.Category) {
@@ -91,6 +99,7 @@ function populateFilters(data) {
     }
   });
   const categories = Array.from(categorySet).sort();
+
   fillSelect("filterCity", cities);
   fillSelect("filterSeason", seasons);
   fillSelect("filterMonth", months);
@@ -129,12 +138,27 @@ function setupFiltering(data) {
   }));
 }
 
+function displayTable(data) {
+  const tbody = document.querySelector("#eventsTable tbody");
+  tbody.innerHTML = "";
+  data.forEach(row => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="event-link" style="color:#0073e6;text-decoration:underline;">${row["Event name"]}</td>
+      <td>${row.City || ""}</td>
+      <td>${row.Season || ""}</td>
+      <td>${row.Month || ""}</td>
+      <td>${row.Category || ""}</td>
+    `;
+    tr.addEventListener("click", () => showModal(row));
+    tbody.appendChild(tr);
+  });
+}
+
 function formatFoodAndDrink(text) {
   if (!text) return "—";
-  // Разбиваем по строкам или запятым
   const items = text.split(/\n|,/).map(i => i.trim()).filter(Boolean);
   return items.map(item => {
-    // Если содержит ссылку — делаем кликабельной
     const urlMatch = item.match(/https?:\/\/[^\s]+/);
     if (urlMatch) {
       const url = urlMatch[0];
@@ -150,32 +174,29 @@ function showModal(row) {
   const body = document.getElementById("modalBody");
   body.innerHTML = `
     <h2>${row["Event name"]}</h2>
-    <p><b>City:</b> ${row.City}</p>
-    <p><b>Location:</b> ${row.Location}</p>
-    <p><b>Season:</b> ${row.Season}</p>
-    <p><b>Month:</b> ${row.Month}</p>
-    <p><b>Start Date:</b> ${row["Start Date"]}</p>
-    <p><b>End Date:</b> ${row["End Date"]}</p>
-    <p><b>Annual:</b> ${row.Annual}</p>
-    <p><b>Category:</b> ${row.Category}</p>
-    <p><b>Description:</b> ${row.Description}</p>
+    <p><b>City:</b> ${row.City || ""}</p>
+    <p><b>Location:</b> ${row.Location || ""}</p>
+    <p><b>Season:</b> ${row.Season || ""}</p>
+    <p><b>Month:</b> ${row.Month || ""}</p>
+    <p><b>Start Date:</b> ${row["Start Date"] || ""}</p>
+    <p><b>End Date:</b> ${row["End Date"] || ""}</p>
+    <p><b>Annual:</b> ${row.Annual || ""}</p>
+    <p><b>Category:</b> ${row.Category || ""}</p>
+    <p><b>Description:</b> ${row.Description || ""}</p>
     <p><b>Food and Drink:</b><br>${formatFoodAndDrink(row["Food and Drink"])}</p>
     <p><b>Information:</b> <a href="${row.Information}" target="_blank">${row.Information}</a></p>
   `;
   modal.style.display = "block";
 }
 
-const closeBtn = document.querySelector(".close");
-closeBtn.onclick = () => document.getElementById("eventModal").style.display = "none";
+document.querySelector(".close").onclick = () => document.getElementById("eventModal").style.display = "none";
 window.onclick = (e) => {
   const modal = document.getElementById("eventModal");
   if (e.target === modal) modal.style.display = "none";
 };
 
-const papaScript = document.createElement("script");
-papaScript.src = "https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js";
-papaScript.onload = loadData;
-document.head.appendChild(papaScript);
+// 🚀 Загружаем данные сразу при открытии страницы
+loadData();
 </script>
 
 </body>
