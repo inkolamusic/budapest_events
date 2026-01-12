@@ -81,7 +81,19 @@ function populateFilters(data) {
   const cities = [...new Set(data.map(d => d.City).filter(Boolean))];
   const seasons = [...new Set(data.map(d => d.Season).filter(Boolean))];
   const months = [...new Set(data.map(d => d.Month).filter(Boolean))];
-  const categories = [...new Set(data.map(d => d.Category).filter(Boolean))];
+
+  // 👇 Новая логика для категорий
+  const categorySet = new Set();
+  data.forEach(d => {
+    if (d.Category) {
+      d.Category.split(",").forEach(cat => {
+        const clean = cat.trim();
+        if (clean) categorySet.add(clean);
+      });
+    }
+  });
+  const categories = [...categorySet];
+
   fillSelect("filterCity", cities);
   fillSelect("filterSeason", seasons);
   fillSelect("filterMonth", months);
@@ -90,7 +102,7 @@ function populateFilters(data) {
 
 function fillSelect(id, values) {
   const select = document.getElementById(id);
-  values.forEach(v => {
+  values.sort().forEach(v => {
     const opt = document.createElement("option");
     opt.value = v;
     opt.textContent = v;
@@ -111,7 +123,7 @@ function setupFiltering(data) {
       (!filters.City || d.City === filters.City) &&
       (!filters.Season || d.Season === filters.Season) &&
       (!filters.Month || d.Month === filters.Month) &&
-      (!filters.Category || d.Category === filters.Category)
+      (!filters.Category || (d.Category && d.Category.split(",").map(c => c.trim()).includes(filters.Category)))
     );
     displayTable(filtered);
   }));
