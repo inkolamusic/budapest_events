@@ -65,17 +65,17 @@
   </div>
 </div>
 
-<!-- ✅ Подключаем PapaParse до основного кода -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
 <script>
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRT2Ir3fvsGHchJyk04LpS7qBTPuGoiytSy37BFK-RVoo8WNCPIyPMYTH_OLnkRZH6LegqjWF-MFm4I/pub?gid=0&single=true&output=csv";
 
+// Загружаем данные из CSV
 async function loadData() {
   try {
     const res = await fetch(sheetURL);
     const text = await res.text();
-    const data = Papa.parse(text, { header: true }).data.filter(row => row["Event name"]); // убираем пустые строки
+    const data = Papa.parse(text, { header: true }).data.filter(row => row["Event name"]);
     populateFilters(data);
     displayTable(data);
     setupFiltering(data);
@@ -84,6 +84,7 @@ async function loadData() {
   }
 }
 
+// Создание фильтров
 function populateFilters(data) {
   const cities = [...new Set(data.map(d => d.City?.trim()).filter(Boolean))];
   const seasons = [...new Set(data.map(d => d.Season?.trim()).filter(Boolean))];
@@ -106,6 +107,7 @@ function populateFilters(data) {
   fillSelect("filterCategory", categories);
 }
 
+// Заполняем select
 function fillSelect(id, values) {
   const select = document.getElementById(id);
   values.forEach(v => {
@@ -116,6 +118,7 @@ function fillSelect(id, values) {
   });
 }
 
+// Настройка фильтров
 function setupFiltering(data) {
   const selects = document.querySelectorAll("select");
   selects.forEach(s => s.addEventListener("change", () => {
@@ -138,6 +141,37 @@ function setupFiltering(data) {
   }));
 }
 
+// Форматируем Food and Drink как список с активными ссылками
+function formatFoodAndDrink(text) {
+  if (!text) return "—";
+  const items = text.split(/\n|,/).map(i => i.trim()).filter(Boolean);
+  return items.map(item => {
+    const urlMatch = item.match(/https?:\/\/[^\s]+/);
+    if (urlMatch) {
+      const url = urlMatch[0];
+      const name = item.replace(url, "").trim() || url;
+      return `<div><a href="${url}" target="_blank">${name}</a></div>`;
+    }
+    return `<div>${item}</div>`;
+  }).join("");
+}
+
+// Форматируем Location как список с активными ссылками
+function formatLocation(text) {
+  if (!text) return "—";
+  const items = text.split(/\n|,/).map(i => i.trim()).filter(Boolean);
+  return items.map(item => {
+    const urlMatch = item.match(/https?:\/\/[^\s]+/);
+    if (urlMatch) {
+      const url = urlMatch[0];
+      const name = item.replace(url, "").trim() || url;
+      return `<div><a href="${url}" target="_blank">${name}</a></div>`;
+    }
+    return `<div>${item}</div>`;
+  }).join("");
+}
+
+// Отображение таблицы
 function displayTable(data) {
   const tbody = document.querySelector("#eventsTable tbody");
   tbody.innerHTML = "";
@@ -155,27 +189,14 @@ function displayTable(data) {
   });
 }
 
-function formatFoodAndDrink(text) {
-  if (!text) return "—";
-  const items = text.split(/\n|,/).map(i => i.trim()).filter(Boolean);
-  return items.map(item => {
-    const urlMatch = item.match(/https?:\/\/[^\s]+/);
-    if (urlMatch) {
-      const url = urlMatch[0];
-      const name = item.replace(url, "").trim() || url;
-      return `<a href="${url}" target="_blank">${name}</a>`;
-    }
-    return item;
-  }).join("<br>");
-}
-
+// Модальное окно с полной информацией
 function showModal(row) {
   const modal = document.getElementById("eventModal");
   const body = document.getElementById("modalBody");
   body.innerHTML = `
     <h2>${row["Event name"]}</h2>
     <p><b>City:</b> ${row.City || ""}</p>
-    <p><b>Location:</b> ${row.Location || ""}</p>
+    <p><b>Location:</b><br>${formatLocation(row.Location)}</p>
     <p><b>Season:</b> ${row.Season || ""}</p>
     <p><b>Month:</b> ${row.Month || ""}</p>
     <p><b>Start Date:</b> ${row["Start Date"] || ""}</p>
@@ -189,13 +210,14 @@ function showModal(row) {
   modal.style.display = "block";
 }
 
+// Закрытие модального окна
 document.querySelector(".close").onclick = () => document.getElementById("eventModal").style.display = "none";
 window.onclick = (e) => {
   const modal = document.getElementById("eventModal");
   if (e.target === modal) modal.style.display = "none";
 };
 
-// 🚀 Загружаем данные сразу при открытии страницы
+// Загружаем данные при открытии страницы
 loadData();
 </script>
 
