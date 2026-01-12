@@ -16,10 +16,32 @@
   select { padding: 5px; }
   a { color: #0073e6; text-decoration: underline; }
   a:hover { text-decoration: none; }
-  .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto;
+
+  /* Модальное окно */
+  .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; 
            background-color: rgba(0,0,0,0.5); }
-  .modal-content { background-color: #fff; margin: 5% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 600px; }
+  .modal-content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    animation: fadeIn 0.3s;
+  }
   .close { float: right; font-size: 24px; font-weight: bold; cursor: pointer; }
+
+  @keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+  }
+
   @media (max-width: 600px) {
     th, td { font-size: 12px; padding: 6px; }
     .modal-content { width: 95%; }
@@ -70,7 +92,7 @@
 <script>
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRT2Ir3fvsGHchJyk04LpS7qBTPuGoiytSy37BFK-RVoo8WNCPIyPMYTH_OLnkRZH6LegqjWF-MFm4I/pub?gid=0&single=true&output=csv";
 
-// Загружаем данные из CSV
+// Загрузка данных
 async function loadData() {
   try {
     const res = await fetch(sheetURL);
@@ -107,7 +129,6 @@ function populateFilters(data) {
   fillSelect("filterCategory", categories);
 }
 
-// Заполняем select
 function fillSelect(id, values) {
   const select = document.getElementById(id);
   values.forEach(v => {
@@ -118,7 +139,7 @@ function fillSelect(id, values) {
   });
 }
 
-// Настройка фильтров
+// Фильтры
 function setupFiltering(data) {
   const selects = document.querySelectorAll("select");
   selects.forEach(s => s.addEventListener("change", () => {
@@ -141,37 +162,7 @@ function setupFiltering(data) {
   }));
 }
 
-// Форматируем Food and Drink как список с активными ссылками
-function formatFoodAndDrink(text) {
-  if (!text) return "—";
-  const items = text.split(/\n|,/).map(i => i.trim()).filter(Boolean);
-  return items.map(item => {
-    const urlMatch = item.match(/https?:\/\/[^\s]+/);
-    if (urlMatch) {
-      const url = urlMatch[0];
-      const name = item.replace(url, "").trim() || url;
-      return `<div><a href="${url}" target="_blank">${name}</a></div>`;
-    }
-    return `<div>${item}</div>`;
-  }).join("");
-}
-
-// Форматируем Location как список с активными ссылками
-function formatLocation(text) {
-  if (!text) return "—";
-  const items = text.split(/\n|,/).map(i => i.trim()).filter(Boolean);
-  return items.map(item => {
-    const urlMatch = item.match(/https?:\/\/[^\s]+/);
-    if (urlMatch) {
-      const url = urlMatch[0];
-      const name = item.replace(url, "").trim() || url;
-      return `<div><a href="${url}" target="_blank">${name}</a></div>`;
-    }
-    return `<div>${item}</div>`;
-  }).join("");
-}
-
-// Отображение таблицы
+// Таблица
 function displayTable(data) {
   const tbody = document.querySelector("#eventsTable tbody");
   tbody.innerHTML = "";
@@ -189,7 +180,37 @@ function displayTable(data) {
   });
 }
 
-// Модальное окно с полной информацией
+// Формат Food and Drink
+function formatFoodAndDrink(text) {
+  if (!text) return "—";
+  const items = text.split(/\n|,/).map(i => i.trim()).filter(Boolean);
+  return items.map(item => {
+    const urlMatch = item.match(/https?:\/\/[^\s]+/);
+    if (urlMatch) {
+      const url = urlMatch[0];
+      const name = item.replace(url, "").trim() || url;
+      return `<div><a href="${url}" target="_blank">${name}</a></div>`;
+    }
+    return `<div>${item}</div>`;
+  }).join("");
+}
+
+// Формат Location
+function formatLocation(text) {
+  if (!text) return "—";
+  const items = text.split(/\n|,/).map(i => i.trim()).filter(Boolean);
+  return items.map(item => {
+    const urlMatch = item.match(/https?:\/\/[^\s]+/);
+    if (urlMatch) {
+      const url = urlMatch[0];
+      const name = item.replace(url, "").trim() || url;
+      return `<div><a href="${url}" target="_blank">${name}</a></div>`;
+    }
+    return `<div>${item}</div>`;
+  }).join("");
+}
+
+// Модальное окно
 function showModal(row) {
   const modal = document.getElementById("eventModal");
   const body = document.getElementById("modalBody");
@@ -210,7 +231,7 @@ function showModal(row) {
   modal.style.display = "block";
 }
 
-// Закрытие модального окна
+// Закрытие модалки
 document.querySelector(".close").onclick = () => document.getElementById("eventModal").style.display = "none";
 window.onclick = (e) => {
   const modal = document.getElementById("eventModal");
