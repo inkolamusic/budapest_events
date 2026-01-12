@@ -14,7 +14,6 @@
   tr:hover { background-color: #ddd; cursor: pointer; }
   .filter-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 10px 0; }
   select { padding: 5px; }
-  /* Модальное окно */
   .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto;
            background-color: rgba(0,0,0,0.5); }
   .modal-content { background-color: #fff; margin: 5% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 600px; }
@@ -57,7 +56,6 @@
   <tbody></tbody>
 </table>
 
-<!-- Модальное окно -->
 <div id="eventModal" class="modal">
   <div class="modal-content">
     <span class="close">&times;</span>
@@ -78,21 +76,21 @@ async function loadData() {
 }
 
 function populateFilters(data) {
-  const cities = [...new Set(data.map(d => d.City).filter(Boolean))];
-  const seasons = [...new Set(data.map(d => d.Season).filter(Boolean))];
-  const months = [...new Set(data.map(d => d.Month).filter(Boolean))];
+  const cities = [...new Set(data.map(d => d.City?.trim()).filter(Boolean))];
+  const seasons = [...new Set(data.map(d => d.Season?.trim()).filter(Boolean))];
+  const months = [...new Set(data.map(d => d.Month?.trim()).filter(Boolean))];
 
-  // 👇 Новая логика для категорий
+  // 👇 Улучшенная логика для категорий
   const categorySet = new Set();
   data.forEach(d => {
     if (d.Category) {
       d.Category.split(",").forEach(cat => {
-        const clean = cat.trim();
+        const clean = cat.trim().toLowerCase();
         if (clean) categorySet.add(clean);
       });
     }
   });
-  const categories = [...categorySet];
+  const categories = Array.from(categorySet).sort();
 
   fillSelect("filterCity", cities);
   fillSelect("filterSeason", seasons);
@@ -102,10 +100,10 @@ function populateFilters(data) {
 
 function fillSelect(id, values) {
   const select = document.getElementById(id);
-  values.sort().forEach(v => {
+  values.forEach(v => {
     const opt = document.createElement("option");
     opt.value = v;
-    opt.textContent = v;
+    opt.textContent = v.charAt(0).toUpperCase() + v.slice(1); // чтобы красиво выглядело
     select.appendChild(opt);
   });
 }
@@ -120,10 +118,13 @@ function setupFiltering(data) {
       Category: document.getElementById("filterCategory").value
     };
     const filtered = data.filter(d =>
-      (!filters.City || d.City === filters.City) &&
-      (!filters.Season || d.Season === filters.Season) &&
-      (!filters.Month || d.Month === filters.Month) &&
-      (!filters.Category || (d.Category && d.Category.split(",").map(c => c.trim()).includes(filters.Category)))
+      (!filters.City || d.City?.trim() === filters.City) &&
+      (!filters.Season || d.Season?.trim() === filters.Season) &&
+      (!filters.Month || d.Month?.trim() === filters.Month) &&
+      (!filters.Category || (
+        d.Category &&
+        d.Category.split(",").map(c => c.trim().toLowerCase()).includes(filters.Category)
+      ))
     );
     displayTable(filtered);
   }));
