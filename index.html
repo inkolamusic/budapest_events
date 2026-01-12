@@ -14,6 +14,8 @@
   tr:hover { background-color: #ddd; cursor: pointer; }
   .filter-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 10px 0; }
   select { padding: 5px; }
+  a { color: #0073e6; text-decoration: underline; }
+  a:hover { text-decoration: none; }
   .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto;
            background-color: rgba(0,0,0,0.5); }
   .modal-content { background-color: #fff; margin: 5% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 600px; }
@@ -79,8 +81,6 @@ function populateFilters(data) {
   const cities = [...new Set(data.map(d => d.City?.trim()).filter(Boolean))];
   const seasons = [...new Set(data.map(d => d.Season?.trim()).filter(Boolean))];
   const months = [...new Set(data.map(d => d.Month?.trim()).filter(Boolean))];
-
-  // 👇 Улучшенная логика для категорий
   const categorySet = new Set();
   data.forEach(d => {
     if (d.Category) {
@@ -91,7 +91,6 @@ function populateFilters(data) {
     }
   });
   const categories = Array.from(categorySet).sort();
-
   fillSelect("filterCity", cities);
   fillSelect("filterSeason", seasons);
   fillSelect("filterMonth", months);
@@ -103,7 +102,7 @@ function fillSelect(id, values) {
   values.forEach(v => {
     const opt = document.createElement("option");
     opt.value = v;
-    opt.textContent = v.charAt(0).toUpperCase() + v.slice(1); // чтобы красиво выглядело
+    opt.textContent = v.charAt(0).toUpperCase() + v.slice(1);
     select.appendChild(opt);
   });
 }
@@ -130,21 +129,20 @@ function setupFiltering(data) {
   }));
 }
 
-function displayTable(data) {
-  const tbody = document.querySelector("#eventsTable tbody");
-  tbody.innerHTML = "";
-  data.forEach(row => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="event-link" style="color:#0073e6;text-decoration:underline;">${row["Event name"]}</td>
-      <td>${row.City}</td>
-      <td>${row.Season}</td>
-      <td>${row.Month}</td>
-      <td>${row.Category}</td>
-    `;
-    tr.addEventListener("click", () => showModal(row));
-    tbody.appendChild(tr);
-  });
+function formatFoodAndDrink(text) {
+  if (!text) return "—";
+  // Разбиваем по строкам или запятым
+  const items = text.split(/\n|,/).map(i => i.trim()).filter(Boolean);
+  return items.map(item => {
+    // Если содержит ссылку — делаем кликабельной
+    const urlMatch = item.match(/https?:\/\/[^\s]+/);
+    if (urlMatch) {
+      const url = urlMatch[0];
+      const name = item.replace(url, "").trim() || url;
+      return `<a href="${url}" target="_blank">${name}</a>`;
+    }
+    return item;
+  }).join("<br>");
 }
 
 function showModal(row) {
@@ -161,7 +159,7 @@ function showModal(row) {
     <p><b>Annual:</b> ${row.Annual}</p>
     <p><b>Category:</b> ${row.Category}</p>
     <p><b>Description:</b> ${row.Description}</p>
-    <p><b>Food and Drink:</b><br>${row["Food and Drink"]}</p>
+    <p><b>Food and Drink:</b><br>${formatFoodAndDrink(row["Food and Drink"])}</p>
     <p><b>Information:</b> <a href="${row.Information}" target="_blank">${row.Information}</a></p>
   `;
   modal.style.display = "block";
@@ -174,7 +172,6 @@ window.onclick = (e) => {
   if (e.target === modal) modal.style.display = "none";
 };
 
-// Подключаем PapaParse
 const papaScript = document.createElement("script");
 papaScript.src = "https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js";
 papaScript.onload = loadData;
